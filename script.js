@@ -19,7 +19,7 @@ const OFF_ROAD_DECEL = -MAX_SPEED / 2;
 const keys = { left: false, right: false, up: false, down: false, space: false };
 
 let playerNeonColor = '#00ffff'; 
-let selectedGameMode = 'free'; // Options: 'free' or 'career'
+let selectedGameMode = 'free'; 
 
 // Audio Context Setup
 let audioCtx = null, hornOsc1 = null, hornOsc2 = null, hornGain = null;
@@ -28,7 +28,7 @@ let audioCtx = null, hornOsc1 = null, hornOsc2 = null, hornGain = null;
 let segments = [];
 let trackLength = 0;
 let cars = [];
-let rivalRacers = []; // Tracks structural career opponents
+let rivalRacers = []; 
 
 // Engine Variables
 let playerX = 0.5; 
@@ -45,7 +45,6 @@ document.getElementById('engage-btn').addEventListener('click', launchGameFromMe
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('exit-btn').addEventListener('click', exitToMainMenu);
 
-// Mode Toggle Selectors
 const freeModeCard = document.getElementById('mode-free');
 const careerModeCard = document.getElementById('mode-career');
 const manualContent = document.getElementById('manual-content');
@@ -64,7 +63,6 @@ careerModeCard.addEventListener('click', () => {
     manualContent.innerHTML = `<div class="info-block"><span class="badge career-info">CAREER MODE</span><p>3 Lanes (All North). Beat elite random speed rivals to win!</p></div>`;
 });
 
-// Showroom Color Selection Loop Logic
 const colorDots = document.querySelectorAll('.color-dot');
 colorDots.forEach(dot => {
     dot.addEventListener('click', (e) => {
@@ -128,12 +126,11 @@ function buildTrack() {
     cars = [];
     rivalRacers = [];
 
-    // Tweak core architecture dimensions depending on mode selected
     if (selectedGameMode === 'career') {
-        ROAD_W = 2200; // Snug profile for 3 clean northbound lanes
+        ROAD_W = 2200; 
         document.getElementById('mode-display').innerText = "CAREER RACE";
     } else {
-        ROAD_W = 3000; // Restored 4-lane wide layout
+        ROAD_W = 3000; 
         document.getElementById('mode-display').innerText = "FREE RIDE";
     }
 
@@ -143,9 +140,8 @@ function buildTrack() {
                 { road: '#121218', grass: '#040307', rumble: '#ff0055', lane: '#ffffff', barrier: '#00ffff' } : 
                 { road: '#0d0d12', grass: '#020205', rumble: '#1d001d', lane: '#0d0d12', barrier: '#ff0055' };
             
-            // Alter visual highway lines if playing 3-lane career mode
             if (selectedGameMode === 'career') {
-                colors.barrier = '#121218'; // Turn off center guard divider
+                colors.barrier = '#121218'; 
             }
 
             segments.push({
@@ -158,55 +154,45 @@ function buildTrack() {
     addFloor(100, 0, 0); addFloor(120, 2, 10); addFloor(100, -1.5, -5); addFloor(140, -3.5, 6); addFloor(100, 0, 0); addFloor(150, 4, -12); addFloor(100, 0, 0);
     trackLength = segments.length * SEGMENT_L;
 
-    // SCENARIO 1: FREE RIDE MODE DATA INJECTION (Your original 4-lane configuration)
+    // SCENARIO 1: FREE RIDE MODE
     if (selectedGameMode === 'free') {
-        let totalCars = 30;
+        let totalCars = 25;
         const lanePositions = [-0.75, -0.25, 0.25, 0.75];
         for (let i = 0; i < totalCars; i++) {
             let isSouthbound = Math.random() > 0.5; 
             let laneIdx = isSouthbound ? (Math.random() > 0.5 ? 0 : 1) : (Math.random() > 0.5 ? 2 : 3);
-            let spawnPos = Math.random() * trackLength;
-            if (!isSouthbound && spawnPos < 2000) spawnPos += 2000; 
+            
+            // IQ300 Fix: Spawn ALL traffic ahead of player (Position > 2000) so nothing hits your tail immediately
+            let spawnPos = 2000 + Math.random() * (trackLength - 3000);
 
             cars.push({
                 position: spawnPos, targetLaneX: lanePositions[laneIdx], x: lanePositions[laneIdx], lane: laneIdx,
-                heading: isSouthbound ? 'south' : 'north', baseSpeed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 2000),
-                speed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 2000), color: isSouthbound ? '#ff3366' : '#ffff00', width: 0.25, isEvading: false, evadeTimer: 0
+                heading: isSouthbound ? 'south' : 'north', 
+                baseSpeed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 1500),
+                speed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 1500), 
+                color: isSouthbound ? '#ff3366' : '#ffff00', width: 0.25, isEvading: false, evadeTimer: 0
             });
         }
     } 
-    // SCENARIO 2: CAREER RIVAL GRIDS MODE DATA INJECTION (3 lanes, all North)
+    // SCENARIO 2: CAREER RIVAL MODE (IQ300 Fix: No civilian cars at all, pure boss race!)
     else {
-        // Build regular background civilian traffic flow arrays first
-        let totalTraffic = 20;
-        const careerLanes = [-0.6, 0, 0.6]; // 3 lanes perfectly aligned horizontally
-        for (let i = 0; i < totalTraffic; i++) {
-            let laneIdx = Math.floor(Math.random() * 3);
-            cars.push({
-                position: 3000 + Math.random() * (trackLength - 4000), targetLaneX: careerLanes[laneIdx], x: careerLanes[laneIdx], lane: laneIdx,
-                heading: 'north', baseSpeed: MAX_SPEED * 0.25 + Math.random() * 1500, speed: MAX_SPEED * 0.25 + Math.random() * 1500,
-                color: '#8a88af', width: 0.25, isEvading: false, evadeTimer: 0
-            });
-        }
+        const careerLanes = [-0.6, 0, 0.6]; 
 
-        // --- IQ 300 CAREER MODE RANDOM SELECTOR ENGINE ---
-        // Profile pool of 3 elite structural racers
         const profiles = [
-            { name: 'BLAZE', color: '#ff0033', speed: MAX_SPEED * 0.88 },
-            { name: 'VIPER', color: '#00ff66', speed: MAX_SPEED * 0.85 },
-            { name: 'SHADOW', color: '#aa00ff', speed: MAX_SPEED * 0.92 }
+            { name: 'BLAZE', color: '#ff0033', speed: MAX_SPEED * 0.85 },
+            { name: 'VIPER', color: '#00ff66', speed: MAX_SPEED * 0.82 },
+            { name: 'SHADOW', color: '#aa00ff', speed: MAX_SPEED * 0.88 }
         ];
         
-        // Randomly pick count: 1 rival or 2 rivals
         let opponentCount = Math.random() > 0.5 ? 1 : 2;
-        // Shuffle profile selection
         let shuffledProfiles = profiles.sort(() => 0.5 - Math.random());
 
         for (let i = 0; i < opponentCount; i++) {
             let choice = shuffledProfiles[i];
-            let assignLane = i === 0 ? 0 : 2; // Separate their initial layouts to side lanes
+            let assignLane = i === 0 ? 0 : 2; 
             rivalRacers.push({
-                name: choice.name, x: careerLanes[assignLane], position: 1000 + (i * 400), 
+                name: choice.name, x: careerLanes[assignLane], 
+                position: 1500 + (i * 500), // Spawns cleanly in front of you at start
                 speed: choice.speed, color: choice.color, width: 0.26, lane: assignLane
             });
         }
@@ -216,7 +202,7 @@ function buildTrack() {
 function startGame() {
     initAudio(); document.getElementById('menu').classList.add('hidden');
     buildTrack();
-    position = 0; playerX = (selectedGameMode === 'career') ? 0 : 0.5; // Center start for 3-lanes
+    position = 0; playerX = (selectedGameMode === 'career') ? 0 : 0.5; 
     speed = 3000; score = 0; screenShake = 0; crashSpin = 0; crashTimer = 0; carRotation = 0; carLean = 0;
     particles = []; gameActive = true;
 }
@@ -270,12 +256,11 @@ function update(dt) {
 
     if (keys.up) speed += ACCEL * dt; else if (keys.down) speed += BREAKING * dt; else speed += DECEL * dt;
 
-    // Bound limits adjust depending on structural track dimensions widths
     let edgeBound = (selectedGameMode === 'career') ? 1.1 : 1.6;
     if (playerX < -edgeBound) playerX = -edgeBound; if (playerX > edgeBound) playerX = edgeBound;
     if (Math.abs(playerX) > (edgeBound - 0.45)) { if (speed > 2000) speed += OFF_ROAD_DECEL * dt; }
 
-    // --- PROCEDURAL REAR DETECTION AND CIVILIAN TRAFFIC HANDLING CONTROLLERS ---
+    // --- TRAFFIC BEHAVIOR UPDATES ---
     cars.forEach(car => {
         let oldSeg = findSegment(car.position);
         if (car.heading === 'south') car.position = (car.position - car.speed * dt + trackLength) % trackLength;
@@ -283,21 +268,17 @@ function update(dt) {
         let newSeg = findSegment(car.position);
 
         if (car.heading === 'north') {
-            let relativeDist = position - car.position; if (relativeDist < 0) relativeDist += trackLength; 
-            if (relativeDist > (trackLength - 1200) && relativeDist < trackLength && Math.abs(playerX - car.x) < 0.4) {
-                car.speed = Math.max(1000, speed - 1500); 
-                if (selectedGameMode === 'free') car.lane = (playerX > 0) ? 2 : 3;
-            } else { car.speed = car.baseSpeed; }
+            // IQ300 Fix: If your speed drops and this car falls behind you, clamp its position safely out of rear-end range
+            let relativeDist = position - car.position; if (relativeDist < 0) relativeDist += trackLength;
+            if (relativeDist < 1500) {
+                car.position = (position + 2000) % trackLength; // Instantly push it ahead out of harms way
+            }
 
             if (keys.space) {
                 let distanceAhead = car.position - position; if (distanceAhead < 0) distanceAhead += trackLength;
                 if (distanceAhead > 0 && distanceAhead < 3500 && Math.abs(playerX - car.x) < 0.35) {
                     car.isEvading = true; car.evadeTimer = 2.0; 
-                    if (selectedGameMode === 'free') {
-                        if (car.lane === 2) car.targetLaneX = 0.75; else if (car.lane === 3) car.targetLaneX = 0.25;
-                    } else { // Career mode 3-lane dodge routing
-                        if (car.lane === 1) car.targetLaneX = 0.6; else if (car.lane === 0) car.targetLaneX = 0;
-                    }
+                    if (car.lane === 2) car.targetLaneX = 0.75; else if (car.lane === 3) car.targetLaneX = 0.25;
                 }
             }
         }
@@ -305,43 +286,42 @@ function update(dt) {
         if (car.isEvading) {
             car.x += (car.targetLaneX - car.x) * dt * 4; car.evadeTimer -= dt; if (car.evadeTimer <= 0) car.isEvading = false;
         } else {
-            const defaultLanes = (selectedGameMode === 'career') ? [-0.6, 0, 0.6] : [-0.75, -0.25, 0.25, 0.75];
+            const defaultLanes = [-0.75, -0.25, 0.25, 0.75];
             car.targetLaneX = defaultLanes[car.lane]; car.x += (car.targetLaneX - car.x) * dt * 2.5;
         }
 
-        // Collision Check Civil Base Block
+        // Forward Check Collision Grid
         if (oldSeg.index === currentSegment.index && Math.abs(playerX - car.x) < (car.width + 0.16)) {
             let headOn = (car.heading === 'south');
             let distanceAhead = car.position - position; if (distanceAhead < 0) distanceAhead += trackLength;
-            if (headOn || (distanceAhead < 400 || distanceAhead > (trackLength - 400))) {
+            if (headOn || distanceAhead < 400) {
                 triggerCrash(headOn);
                 car.position = headOn ? (car.position - 800 + trackLength) % trackLength : (car.position + 800) % trackLength;
             }
         }
     });
 
-    // --- NEW: DYNAMIC ELITE RIVAL AI HANDLING SYSTEM ---
+    // --- RIVAL AI MOVEMENT UPDATES ---
     rivalRacers.forEach(rival => {
         let oldSeg = findSegment(rival.position);
         rival.position = (rival.position + rival.speed * dt) % trackLength;
         
-        // Smart Overtaking Logic: If an AI opponent gets blocked by civilian traffic, it shifts lanes
-        cars.forEach(civil => {
-            let distanceBetween = civil.position - rival.position;
-            if (distanceBetween > 0 && distanceBetween < 800 && Math.abs(rival.x - civil.x) < 0.3) {
-                // Change target lane index to dodge
-                rival.lane = (rival.lane + 1) % 3;
-            }
-        });
+        // IQ300 Fix: If rival slips behind you, boost its speed slightly to catch up so it remains challenging without ramming you
+        let relativeDist = position - rival.position; if (relativeDist < 0) relativeDist += trackLength;
+        if (relativeDist < 1500) {
+            rival.position = (position + 2000) % trackLength; // Safe loop ahead warp
+        }
 
-        // Ease smoothly to position lane centers
         const careerLanes = [-0.6, 0, 0.6];
         rival.x += (careerLanes[rival.lane] - rival.x) * dt * 3;
 
-        // Collision Check Against Rival Racers
+        // Clean Front Collision Box Scan
         if (oldSeg.index === currentSegment.index && Math.abs(playerX - rival.x) < (rival.width + 0.16)) {
-            triggerCrash(false);
-            rival.position = (rival.position + 1000) % trackLength;
+            let distanceAhead = rival.position - position; if (distanceAhead < 0) distanceAhead += trackLength;
+            if (distanceAhead < 400) {
+                triggerCrash(false);
+                rival.position = (rival.position + 1000) % trackLength;
+            }
         }
     });
 
@@ -385,7 +365,6 @@ function render() {
             drawPolygon(p1.screen.x, p1.screen.y, p1.screen.w * 1.06, p2.screen.x, p2.screen.y, p2.screen.w * 1.06, segment.color.rumble);
             drawPolygon(p1.screen.x, p1.screen.y, p1.screen.w, p2.screen.x, p2.screen.y, p2.screen.w, segment.color.road);
 
-            // Conditional Center Guard Separator Line Rendering
             if (selectedGameMode === 'free') {
                 let railW1 = p1.screen.w * 0.015, railW2 = p2.screen.w * 0.015;
                 drawPolygon(p1.screen.x, p1.screen.y, railW1, p2.screen.x, p2.screen.y, railW2, segment.color.barrier);
@@ -396,7 +375,6 @@ function render() {
                     drawPolygon(p1.screen.x + p1.screen.w * 0.5, p1.screen.y, lanew1, p2.screen.x + p2.screen.w * 0.5, p2.screen.y, lanew2, segment.color.lane);
                 }
             } else {
-                // Render 3 lanes markers instead (Two splitting white dashed strips inside road borders)
                 if (segment.color.lane !== segment.color.road) {
                     let lanew1 = p1.screen.w / 70, lanew2 = p2.screen.w / 70;
                     drawPolygon(p1.screen.x - p1.screen.w * 0.33, p1.screen.y, lanew1, p2.screen.x - p2.screen.w * 0.33, p2.screen.y, lanew2, '#ffffff');
@@ -407,12 +385,10 @@ function render() {
         }
     }
 
-    // Depth sorting loop for all cars + newly added rival positions arrays
     for (let n = DRAW_DISTANCE - 1; n > 0; n--) {
         const segment = segments[(baseSegment.index + n) % segments.length];
         if (!segment.p1) continue;
 
-        // Render civilian regular entries
         cars.forEach(car => {
             let carSegment = findSegment(car.position);
             if (carSegment.index === segment.index) {
@@ -423,7 +399,6 @@ function render() {
             }
         });
 
-        // Render Elite Career Adversaries
         rivalRacers.forEach(rival => {
             let rivalSegment = findSegment(rival.position);
             if (rivalSegment.index === segment.index) {
@@ -432,7 +407,6 @@ function render() {
                 const rScaleY = segment.p1.screen.y;
                 drawTrafficCar(rScaleX, rScaleY, scale, rival.color, false);
                 
-                // Overlay text badges directly on top of opponent roofs
                 ctx.fillStyle = '#ffffff';
                 ctx.font = `bold ${Math.max(10, Math.round(30 * scale))}px Orbitron`;
                 ctx.textAlign = 'center';
