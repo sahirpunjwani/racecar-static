@@ -18,6 +18,9 @@ const OFF_ROAD_DECEL = -MAX_SPEED / 2;
 
 const keys = { left: false, right: false, up: false, down: false, space: false };
 
+// Custom Color Modification Framework
+let playerNeonColor = '#00ffff'; 
+
 // Web Audio Setup
 let audioCtx = null, hornOsc1 = null, hornOsc2 = null, hornGain = null;
 
@@ -26,14 +29,14 @@ let segments = [];
 let trackLength = 0;
 let cars = [];
 
-// Base Physics Parameters
+// Base Physics
 let playerX = 0.5; 
 let position = 0; 
 let speed = 0;
 let score = 0;
 let gameActive = false;
 
-// Geometry Engine Transforms
+// Orientation Interpolation Buffers
 let carRotation = 0;   
 let carLean = 0;       
 let crashSpin = 0;     
@@ -41,9 +44,28 @@ let crashTimer = 0;
 let screenShake = 0;
 let particles = [];
 
+// HOMEPAGE UI CONTROLLERS
+document.getElementById('engage-btn').addEventListener('click', launchGameFromMenu);
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('exit-btn').addEventListener('click', exitToMainMenu);
+
+// Showroom Color Selection Loop Logic
+const colorDots = document.querySelectorAll('.color-dot');
+colorDots.forEach(dot => {
+    dot.addEventListener('click', (e) => {
+        colorDots.forEach(d => d.classList.remove('active'));
+        e.target.classList.add('active');
+        playerNeonColor = e.target.getAttribute('data-color');
+        
+        // Update vehicle dashboard underglow elements instantly
+        document.querySelector('.preview-car .wing').style.borderColor = playerNeonColor;
+        document.querySelector('.preview-car .cabin').style.borderColor = playerNeonColor;
+        document.querySelector('.platform-light').style.background = playerNeonColor;
+    });
+});
+
 window.addEventListener('keydown', e => handleKey(e, true));
 window.addEventListener('keyup', e => handleKey(e, false));
-document.getElementById('start-btn').addEventListener('click', startGame);
 
 function initAudio() {
     if (!audioCtx) {
@@ -68,9 +90,24 @@ function handleKey(e, isDown) {
     if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = isDown;
     if (e.code === 'Space') {
         keys.space = isDown; initAudio(); setHorn(isDown);
-        if (!gameActive && isDown) startGame();
-        e.preventDefault();
+        if (gameActive) e.preventDefault();
     }
+}
+
+function launchGameFromMenu() {
+    document.getElementById('homepage').classList.add('fade-out');
+    setTimeout(() => {
+        document.getElementById('game-container').classList.remove('hidden');
+        startGame();
+    }, 400);
+}
+
+function exitToMainMenu() {
+    gameActive = false;
+    setHorn(false);
+    document.getElementById('menu').classList.add('hidden');
+    document.getElementById('game-container').classList.add('hidden');
+    document.getElementById('homepage').classList.remove('fade-out');
 }
 
 function project(p, cameraX, cameraY, cameraZ, pr) {
@@ -145,16 +182,20 @@ function startGame() {
 
 function triggerCrash(isHeadOn) {
     screenShake = isHeadOn ? 45 : 20;
-    crashTimer = isHeadOn ? 1.6 : 0.6; 
+    crashTimer = 1.5; 
     crashSpin = isHeadOn ? 24 : 12;    
-    speed = isHeadOn ? 0 : Math.max(100, speed * 0.15);
-    score = Math.max(0, score - 500);
+    speed = 0; // Absolute shutdown to show menu
+    
+    // Trigger In-Game Overlay Display Block
+    setTimeout(() => {
+        if(gameActive) document.getElementById('menu').classList.remove('hidden');
+    }, 800);
 
     for (let i = 0; i < 40; i++) {
         particles.push({
             x: WIDTH / 2 + (Math.random() - 0.5) * 80, y: HEIGHT - 60 + (Math.random() - 0.5) * 40,
             vx: (Math.random() - 0.5) * 32, vy: (Math.random() - 0.5) * 24 - 4,
-            alpha: 1.0, color: isHeadOn ? '#ff0055' : '#00ffff'
+            alpha: 1.0, color: '#ff0055'
         });
     }
 }
@@ -168,15 +209,13 @@ function update(dt) {
     if (crashTimer > 0) {
         crashTimer -= dt;
         carRotation += crashSpin * dt; 
-        speed = Math.max(0, speed - dt * 4500); 
+        speed = Math.max(0, speed - dt * 5500); 
         position = (position + speed * dt) % trackLength;
         
         cars.forEach(car => {
             if (car.heading === 'south') car.position = (car.position - car.speed * dt + trackLength) % trackLength;
             else car.position = (car.position + car.speed * dt) % trackLength;
         });
-
-        if (crashTimer <= 0) { carRotation = 0; carLean = 0; crashSpin = 0; }
         updateParticles(dt);
         return;
     }
@@ -220,7 +259,6 @@ function update(dt) {
 
         let newSeg = findSegment(car.position);
 
-        // Rear Proximity & Forward Sonic Horn Logic
         if (car.heading === 'north') {
             let relativeDist = position - car.position;
             if (relativeDist < 0) relativeDist += trackLength; 
@@ -245,7 +283,6 @@ function update(dt) {
             }
         }
 
-        // Apply Lane Merge Physics Updates
         if (car.isEvading) {
             car.x += (car.targetLaneX - car.x) * dt * 4;
             car.evadeTimer -= dt;
@@ -256,7 +293,6 @@ function update(dt) {
             car.x += (car.targetLaneX - car.x) * dt * 2.5;
         }
 
-        // Collision Pipeline Constraints Processing
         if (oldSeg.index === currentSegment.index) {
             if (Math.abs(playerX - car.x) < (car.width + 0.16)) {
                 let headOn = (car.heading === 'south');
@@ -382,8 +418,9 @@ function drawPlayerCar() {
     ctx.translate(carX, carY - 20);
     ctx.rotate(carRotation);
     
-    ctx.shadowBlur = 20; ctx.shadowColor = '#00ffff';
-    ctx.fillStyle = '#060810'; ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
+    // Bind aesthetic illumination to chosen custom playerGarage color selections
+    ctx.shadowBlur = 20; ctx.shadowColor = playerNeonColor;
+    ctx.fillStyle = '#060810'; ctx.strokeStyle = playerNeonColor; ctx.lineWidth = 3;
 
     ctx.beginPath();
     ctx.moveTo(-55 + carLean, 20); ctx.lineTo(-70 + carLean, -2); ctx.lineTo(70 + carLean, -2); ctx.lineTo(55 + carLean, 20);
