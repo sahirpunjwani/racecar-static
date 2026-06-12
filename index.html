@@ -3,17 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Static 3D Racer</title>
+    <title>NEON HIGHWAY DX // MODULAR ENGINE</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="ui">
-        <div id="score">Score: 0</div>
-        <div id="speed">Speed: 0 km/h</div>
-        <div id="game-over" class="hidden">GAME OVER<br><span style="font-size: 20px;">Press SPACE to Restart</span></div>
-    </div>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="screen-overlay"></div>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="script.js"></script>
+    <div id="hud">
+        <div class="hud-panel">SCORE: <span id="score-val">00000</span></div>
+        <div class="hud-panel" id="speed-panel">SPEED: <span id="speed-val">0</span> KM/H</div>
+    </div>
+
+    <div id="menu">
+        <h1 id="menu-title">INTELLIGENT HIGHWAY</h1>
+        <p id="menu-sub">
+            4-LANE ARCADE SIMULATOR.<br>
+            Left 2 Lanes: Oncoming Traffic | Right 2 Lanes: Northbound Cruising.<br>
+            Traffic intelligent tracking prevents rear clipping! Use SPACEBAR to honk.
+        </p>
+        <button class="btn" id="start-btn">ENGAGE GRID</button>
+    </div>
+</div>
+<div id="hint">Press SPACEBAR to honk. Faster vehicles behind you will now adaptively brake and yield!</div>
+
+<script src="script.js"></script>
 </body>
 </html>
