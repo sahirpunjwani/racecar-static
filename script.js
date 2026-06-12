@@ -121,19 +121,101 @@ function project(p, cameraX, cameraY, cameraZ, pr) {
 
 function findSegment(z) { return segments[Math.floor(z / SEGMENT_L) % segments.length]; }
 
+// --- REPLACE THE buildTrack() FUNCTION IN YOUR script.js ---
+
 function buildTrack() {
     segments = [];
-    cars = [];
-    rivalRacers = [];
+    cars = [];        // Clear civilian cars array entirely
+    rivalRacers = []; // Clear rival racers array entirely
 
+    // Establish hard environment rules based on selection
     if (selectedGameMode === 'career') {
-        ROAD_W = 2200; 
+        ROAD_W = 2200; // 3 lanes layout width
         document.getElementById('mode-display').innerText = "CAREER RACE";
     } else {
-        ROAD_W = 3000; 
+        ROAD_W = 3000; // 4 lanes layout width
         document.getElementById('mode-display').innerText = "FREE RIDE";
     }
 
+    function addFloor(num, curve, hill) {
+        for (let n = 0; n < num; n++) {
+            let colors = (Math.floor(segments.length / 3) % 2) ? 
+                { road: '#121218', grass: '#040307', rumble: '#ff0055', lane: '#ffffff', barrier: '#00ffff' } : 
+                { road: '#0d0d12', grass: '#020205', rumble: '#1d001d', lane: '#0d0d12', barrier: '#ff0055' };
+            
+            if (selectedGameMode === 'career') {
+                colors.barrier = '#121218'; // Delete the center guard rail for 3 lanes north
+            }
+
+            segments.push({
+                index: segments.length, 
+                world: { x: 0, y: lastY(), z: segments.length * SEGMENT_L }, 
+                curve: curve, 
+                hill: hill, 
+                color: colors
+            });
+        }
+    }
+    function lastY() { return segments.length === 0 ? 0 : segments[segments.length - 1].world.y; }
+    
+    // Generate map geometry chunks
+    addFloor(100, 0, 0); 
+    addFloor(120, 2, 10); 
+    addFloor(100, -1.5, -5); 
+    addFloor(140, -3.5, 6); 
+    addFloor(100, 0, 0); 
+    addFloor(150, 4, -12); 
+    addFloor(100, 0, 0);
+    trackLength = segments.length * SEGMENT_L;
+
+    // SCENARIO 1: FREE RIDE MODE (Populate standard traffic grids)
+    if (selectedGameMode === 'free') {
+        let totalCars = 25;
+        const lanePositions = [-0.75, -0.25, 0.25, 0.75];
+        for (let i = 0; i < totalCars; i++) {
+            let isSouthbound = Math.random() > 0.5; 
+            let laneIdx = isSouthbound ? (Math.random() > 0.5 ? 0 : 1) : (Math.random() > 0.5 ? 2 : 3);
+            let spawnPos = 2000 + Math.random() * (trackLength - 3000);
+
+            cars.push({
+                position: spawnPos, targetLaneX: lanePositions[laneIdx], x: lanePositions[laneIdx], lane: laneIdx,
+                heading: isSouthbound ? 'south' : 'north', 
+                baseSpeed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 1500),
+                speed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 1500), 
+                color: isSouthbound ? '#ff3366' : '#ffff00', width: 0.25, isEvading: false, evadeTimer: 0
+            });
+        }
+    } 
+    // SCENARIO 2: CAREER RIVAL MODE
+    else {
+        // HARD ENFORCEMENT: Explicitly verify and lock the civilian traffic array to zero
+        cars = []; 
+
+        const careerLanes = [-0.6, 0, 0.6]; // 3 lanes coordination map
+        const profiles = [
+            { name: 'BLAZE', color: '#ff0033', speed: MAX_SPEED * 0.85 },
+            { name: 'VIPER', color: '#00ff66', speed: MAX_SPEED * 0.82 },
+            { name: 'SHADOW', color: '#aa00ff', speed: MAX_SPEED * 0.88 }
+        ];
+        
+        let opponentCount = Math.random() > 0.5 ? 1 : 2;
+        let shuffledProfiles = profiles.sort(() => 0.5 - Math.random());
+
+        for (let i = 0; i < opponentCount; i++) {
+            let choice = shuffledProfiles[i];
+            let assignLane = i === 0 ? 0 : 2; 
+            rivalRacers.push({
+                name: choice.name, 
+                x: careerLanes[assignLane], 
+                position: 1500 + (i * 600), // Spawns elite cars perfectly in front of player
+                speed: choice.speed, 
+                color: choice.color, 
+                width: 0.26, 
+                lane: assignLane
+            });
+        }
+    }
+}
     function addFloor(num, curve, hill) {
         for (let n = 0; n < num; n++) {
             let colors = (Math.floor(segments.length / 3) % 2) ? 
