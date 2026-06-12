@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEON HIGHWAY DX // MR. RACER EDITION</title>
+    <title>NEON OVERDRIVE // MASTER ENGINE</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,34 +13,31 @@
         
         <header class="main-header">
             <div class="logo-container">
-                <span class="tagline">CYBERPUNK ARCADE</span>
+                <span class="tagline">SYNTHWAVE ARCADE CHASSIS</span>
                 <h1>NEON<span class="alt-color">RACER</span></h1>
             </div>
             <div class="currency-panel">
-                <div class="stat-pill">⚡ NET_SPEED: <span id="max-stat">1400 KM/H</span></div>
+                <div class="stat-pill">⚡ VECTOR_CORE: <span id="max-stat">READY</span></div>
             </div>
         </header>
 
         <div class="showroom-container">
             <div class="side-panel left-panel">
-                <h2>RACE MODES</h2>
-                
+                <h2>SIMULATION MODE</h2>
                 <div class="mode-selection">
                     <div class="mode-card active" id="mode-free">
                         <h3>FREE RIDE</h3>
-                        <p>4 Lanes. Oncoming Traffic. Practice handling and test limits.</p>
+                        <p>4 Lanes. Oncoming Traffic Matrix. Test corner drifting velocities.</p>
                     </div>
                     <div class="mode-card" id="mode-career">
-                        <h3>CAREER RACE</h3>
-                        <p>3 Lanes (All North). Beat 1-2 random elite AI opponents to win!</p>
+                        <h3>CAREER APEX</h3>
+                        <p>3 Lanes (All Northbound). Zero civilian interference. Race 1-2 random elite AI profiles.</p>
                     </div>
                 </div>
 
-                <h2>GARAGE CORE</h2>
+                <h2>VECTOR UNDERGLOW</h2>
                 <div class="upgrade-card">
-                    <div class="card-info">
-                        <h3>UNDERGLOW COLOR</h3>
-                    </div>
+                    <p>Calibrate structural photon discharge color:</p>
                     <div class="color-picker-grid">
                         <button class="color-dot active" data-color="#00ffff" style="background: #00ffff;"></button>
                         <button class="color-dot" data-color="#ff007f" style="background: #ff007f;"></button>
@@ -62,28 +59,28 @@
             </div>
 
             <div class="side-panel right-panel">
-                <h2>RACE MANUAL</h2>
+                <h2>SYSTEM LOGISTICS</h2>
                 <div id="manual-content">
                     <div class="info-block">
                         <span class="badge oncoming">WARNING</span>
-                        <p>Left 2 lanes feature oncoming high-speed traffic.</p>
+                        <p>Left double-lane configurations feature inverted velocity oncoming entities.</p>
                     </div>
                 </div>
                 <div class="info-block">
                     <span class="badge sonic">SONIC HORN</span>
-                    <p>Hold <b>SPACEBAR</b> to force northbound cars to change lanes.</p>
+                    <p>Pulse <b>SPACEBAR</b>. Downstream vectors translate lanes laterally to clear pathing.</p>
                 </div>
                 <div class="info-block">
-                    <span class="badge steering">STEERING</span>
-                    <p>Use <b>A/D</b> or <b>ARROW KEYS</b> to steer and rotate.</p>
+                    <span class="badge steering">MOMENTUM</span>
+                    <p><b>A/D</b> or <b>ARROW KEYS</b>. Chassis applies dynamic rotational yaw on curves.</p>
                 </div>
             </div>
         </div>
 
         <footer class="action-footer">
             <button class="play-btn" id="engage-btn">
-                <span class="btn-text">START RACE</span>
-                <span class="btn-sub">ENTER GAME SIMULATION</span>
+                <span class="btn-text">INITIALIZE GRID</span>
+                <span class="btn-sub">LOAD KINETIC BUFFER</span>
             </button>
         </footer>
     </div>
@@ -94,15 +91,15 @@
         
         <div id="hud">
             <div class="hud-panel">SCORE: <span id="score-val">00000</span></div>
-            <div class="hud-panel" id="mode-display" style="border-color: #ffff00; color: #ffff00; text-shadow: 0 0 8px #ffff00;">FREE RIDE</div>
+            <div class="hud-panel" id="mode-display">FREE RIDE</div>
             <div class="hud-panel" id="speed-panel">SPEED: <span id="speed-val">0</span> KM/H</div>
         </div>
 
         <div id="menu" class="hidden">
-            <h1 id="menu-title">CRASH TERMINATION</h1>
-            <p id="menu-sub">Simulation interrupted via core structural collision grid.</p>
-            <button class="btn" id="start-btn">RESTART GRID</button>
-            <button class="btn secondary" id="exit-btn">RETURN TO MAIN MENU</button>
+            <h1 id="menu-title">CRASH DETECTED</h1>
+            <p id="menu-sub">Structural integration failure. Simulation decoupled.</p>
+            <button class="btn" id="start-btn">RE-ENGAGE MATRIX</button>
+            <button class="btn secondary" id="exit-btn">RETURN TO VEHICLE BAY</button>
         </div>
     </div>
 
