@@ -117,7 +117,6 @@ body {
 }
 .side-panel h2:first-of-type { margin-top: 0; }
 
-/* NEW: MODE SELECTION CARDS */
 .mode-selection {
     display: flex;
     flex-direction: column;
@@ -257,7 +256,7 @@ body {
 .play-btn:hover { transform: scale(1.06); box-shadow: 0 0 45px #ff007f; }
 .play-btn .btn-sub { display: block; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; color: rgba(255, 255, 255, 0.7); margin-top: 2px; }
 
-/* FIX COORD BUG: CRITICAL RESOLUTION BOX CENTERING LAYER FIX */
+/* FIX POSITION: ABSOLUTE FOR FIXED ASPECT RATIO CANVAS BOX */
 #game-container {
     position: absolute;
     top: 50%; left: 50%;
