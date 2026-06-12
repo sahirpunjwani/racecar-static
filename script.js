@@ -17,6 +17,10 @@ let segments = [], trackLength = 0, cars = [], rivalRacers = [];
 let playerX = 0.5, position = 0, speed = 0, score = 0, gameActive = false;
 let carRotation = 0, carLean = 0, crashSpin = 0, crashTimer = 0, screenShake = 0, particles = [];
 
+// Track finish parameters
+const TOTAL_SEGMENTS = 600; // Fixed race length to allow overtaking to matter!
+let raceFinished = false;
+
 // DOM Interface Interceptors
 document.getElementById('engage-btn').addEventListener('click', launchGameFromMenu);
 document.getElementById('start-btn').addEventListener('click', startGame);
@@ -35,7 +39,7 @@ freeModeCard.addEventListener('click', () => {
 careerModeCard.addEventListener('click', () => {
     careerModeCard.classList.add('active'); freeModeCard.classList.remove('active');
     selectedGameMode = 'career';
-    manualContent.innerHTML = `<div class="info-block"><span class="badge career-info">CAREER MODE</span><p>3-Lane hyper-grid. Complete elimination of civilian traffic markers.</p></div>`;
+    manualContent.innerHTML = `<div class="info-block"><span class="badge career-info">CAREER MODE</span><p>3-Lane hyper-grid. Cross the finish line at 120,000m before your rivals to win!</p></div>`;
 });
 
 const colorDots = document.querySelectorAll('.color-dot');
@@ -94,7 +98,7 @@ function project(p, cameraX, cameraY, cameraZ, pr) {
 function findSegment(z) { return segments[Math.floor(z / SEGMENT_L) % segments.length]; }
 
 function buildTrack() {
-    segments = []; cars = []; rivalRacers = [];
+    segments = []; cars = []; rivalRacers = []; raceFinished = false;
     ROAD_W = (selectedGameMode === 'career') ? 2200 : 3000;
     document.getElementById('mode-display').innerText = (selectedGameMode === 'career') ? "CAREER APEX" : "FREE RIDE";
 
@@ -103,13 +107,29 @@ function buildTrack() {
             let colors = (Math.floor(segments.length / 3) % 2) ? 
                 { road: '#121218', grass: '#040307', rumble: '#ff0055', lane: '#ffffff', barrier: '#00ffff' } : 
                 { road: '#0d0d12', grass: '#020205', rumble: '#1d001d', lane: '#0d0d12', barrier: '#ff0055' };
+            
             if (selectedGameMode === 'career') colors.barrier = '#0d0d12';
+
+            // Checkered flag segment colors at the finish line stretch
+            if (segments.length >= TOTAL_SEGMENTS - 6 && segments.length <= TOTAL_SEGMENTS) {
+                colors.road = (Math.floor(segments.length) % 2 === 0) ? '#ffffff' : '#111116';
+                colors.lane = colors.road;
+            }
+
             segments.push({ index: segments.length, world: { x: 0, y: lastY(), z: segments.length * SEGMENT_L }, curve: curve, hill: hill, color: colors });
         }
     }
     function lastY() { return segments.length === 0 ? 0 : segments[segments.length - 1].world.y; }
     
-    addFloor(100, 0, 0); addFloor(120, 1.8, 8); addFloor(100, -1.2, -4); addFloor(140, -3, 5); addFloor(100, 0, 0); addFloor(150, 3.5, -10); addFloor(100, 0, 0);
+    // Procedurally assemble the absolute linear race track map
+    addFloor(100, 0, 0); 
+    addFloor(120, 1.8, 8); 
+    addFloor(100, -1.2, -4); 
+    addFloor(140, -3, 5); 
+    addFloor(100, 0, 0); 
+    addFloor(150, 3.5, -10); 
+    addFloor(50, 0, 0); // Home stretch finish line segment buffers
+
     trackLength = segments.length * SEGMENT_L;
 
     if (selectedGameMode === 'free') {
@@ -118,7 +138,7 @@ function buildTrack() {
             let isSouthbound = Math.random() > 0.5;
             let laneIdx = isSouthbound ? (Math.random() > 0.5 ? 0 : 1) : (Math.random() > 0.5 ? 2 : 3);
             cars.push({
-                position: 2500 + Math.random() * (trackLength - 3500), targetLaneX: lanePositions[laneIdx], x: lanePositions[laneIdx], lane: laneIdx, heading: isSouthbound ? 'south' : 'north',
+                position: 2500 + Math.random() * (trackLength - 4500), targetLaneX: lanePositions[laneIdx], x: lanePositions[laneIdx], lane: laneIdx, heading: isSouthbound ? 'south' : 'north',
                 baseSpeed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 1500), speed: isSouthbound ? (MAX_SPEED * 0.25) : (MAX_SPEED * 0.35 + Math.random() * 1500),
                 color: isSouthbound ? '#ff3366' : '#ffff00', width: 0.25, isEvading: false, evadeTimer: 0
             });
@@ -126,15 +146,15 @@ function buildTrack() {
     } else {
         cars = []; const careerLanes = [-0.6, 0, 0.6];
         const profiles = [
-            { name: 'BLAZE', color: '#ff0033', speed: MAX_SPEED * 0.85 }, 
-            { name: 'VIPER', color: '#00ff66', speed: MAX_SPEED * 0.82 }, 
-            { name: 'SHADOW', color: '#aa00ff', speed: MAX_SPEED * 0.88 }
+            { name: 'BLAZE', color: '#ff0033', speed: MAX_SPEED * 0.76 }, 
+            { name: 'VIPER', color: '#00ff66', speed: MAX_SPEED * 0.73 }, 
+            { name: 'SHADOW', color: '#aa00ff', speed: MAX_SPEED * 0.79 }
         ];
         let count = Math.random() > 0.5 ? 1 : 2; let shuf = profiles.sort(() => 0.5 - Math.random());
         for (let i = 0; i < count; i++) {
             let ch = shuf[i], lIdx = (i === 0) ? 0 : 2;
             rivalRacers.push({ 
-                name: ch.name, x: careerLanes[lIdx], position: 1500 + (i * 600), speed: ch.speed, color: ch.color, width: 0.26, lane: lIdx,
+                name: ch.name, x: careerLanes[lIdx], position: 1200 + (i * 500), speed: ch.speed, color: ch.color, width: 0.26, lane: lIdx,
                 isCrashing: false, crashTimer: 0
             });
         }
@@ -149,10 +169,22 @@ function startGame() {
 
 function triggerCrash() {
     screenShake = 45; crashTimer = 1.5; crashSpin = 24; speed = 0;
-    setTimeout(() => { if(gameActive) document.getElementById('menu').classList.remove('hidden'); }, 800);
+    setTimeout(() => { if(gameActive && !raceFinished) document.getElementById('menu').classList.remove('hidden'); }, 800);
     for (let i = 0; i < 40; i++) {
         particles.push({ x: WIDTH / 2 + (Math.random() - 0.5) * 80, y: HEIGHT - 60 + (Math.random() - 0.5) * 40, vx: (Math.random() - 0.5) * 32, vy: (Math.random() - 0.5) * 24 - 4, alpha: 1.0, color: '#ff0055' });
     }
+}
+
+function handleRaceEnd(playerWon) {
+    gameActive = false;
+    setHorn(false);
+    
+    document.getElementById('menu-title').innerText = playerWon ? "VICTORY APEX" : "DEFEAT";
+    document.getElementById('menu-sub').innerHTML = playerWon ? 
+        `You dominated the highway grid before the elite profiles.<br>Final Score: <span style="color:#00ffff">${Math.floor(score)}</span>` : 
+        `Rival profiles crossed the checkered banner first. Hardware optimization recommended.`;
+        
+    document.getElementById('menu').classList.remove('hidden');
 }
 
 function update(dt) {
@@ -161,11 +193,11 @@ function update(dt) {
     if (screenShake < 0) screenShake = 0;
 
     if (crashTimer > 0) {
-        crashTimer -= dt; carRotation += crashSpin * dt; speed = Math.max(0, speed - dt * 5500); position = (position + speed * dt) % trackLength;
+        crashTimer -= dt; carRotation += crashSpin * dt; speed = Math.max(0, speed - dt * 5500); position = position + speed * dt;
+        if (selectedGameMode === 'free') position = position % trackLength; // Loop forever only in practice free ride
+        
         cars.forEach(c => c.position = (c.position + (c.heading === 'south' ? -c.speed : c.speed) * dt + trackLength) % trackLength);
-        rivalRacers.forEach(r => {
-            if (!r.isCrashing) r.position = (r.position + r.speed * dt) % trackLength;
-        });
+        rivalRacers.forEach(r => { if (!r.isCrashing) r.position = r.position + r.speed * dt; });
         updateParticles(dt); return;
     }
 
@@ -173,7 +205,29 @@ function update(dt) {
     document.getElementById('score-val').innerText = Math.floor(score).toString().padStart(5, '0');
     document.getElementById('speed-val').innerText = Math.round(speed / 100);
 
-    position = (position + speed * dt) % trackLength;
+    position = position + speed * dt;
+    
+    // --- INTEGRATED FINISH LINE TRIGGER CONDITION CHECKERS ---
+    if (selectedGameMode === 'career') {
+        // Did the player cross the finish track range?
+        if (position >= trackLength - 200) {
+            raceFinished = true;
+            handleRaceEnd(true); // Player Wins!
+            return;
+        }
+        // Check if any active rival racer crossed the line first
+        rivalRacers.forEach(r => {
+            if (r.position >= trackLength - 200) {
+                raceFinished = true;
+                handleRaceEnd(false); // Player Loses!
+                return;
+            }
+        });
+        if (raceFinished) return;
+    } else {
+        position = position % trackLength; // Loop endlessly only in free ride
+    }
+
     const currSeg = findSegment(position), speedPct = speed / MAX_SPEED;
     const steerLimit = 3.4 * (speedPct + 0.15);
 
@@ -182,8 +236,17 @@ function update(dt) {
     else if (keys.right) { playerX += dt * steerLimit; targetRot = 0.18; targetLean = 12; }
 
     carRotation += (targetRot - carRotation) * dt * 8; carLean += (targetLean - carLean) * dt * 8;
-    playerX -= dt * speedPct * currSeg.curve * 1.2;
-    if (!keys.left && !keys.right && speed > 0) playerX -= (playerX * dt * 1.5);
+
+    if (keys.left || keys.right) {
+        playerX -= dt * speedPct * currSeg.curve * 0.8;
+    } else {
+        playerX -= dt * speedPct * currSeg.curve * 0.15; 
+    }
+
+    if (!keys.left && !keys.right && speed > 0) {
+        if (selectedGameMode === 'career') playerX -= (playerX * dt * 3.0); 
+        else playerX += ((0.5 - playerX) * dt * 3.0); 
+    }
 
     if (keys.up) speed += ACCEL * dt; else if (keys.down) speed += BREAKING * dt; else speed += DECEL * dt;
 
@@ -197,16 +260,10 @@ function update(dt) {
         c.position = (c.position + (c.heading === 'south' ? -c.speed : c.speed) * dt + trackLength) % trackLength;
         
         if (c.heading === 'north') {
-            // IQ1000 Distance Check: Calculate actual gap separation spacing
-            let distanceAhead = c.position - position;
-            if (distanceAhead < 0) distanceAhead += trackLength;
-
-            // REAR PROXIMITY SMART BRAKING: If car gets stuck directly BEHIND the player car
+            let distanceAhead = c.position - position; if (distanceAhead < 0) distanceAhead += trackLength;
             if (distanceAhead > (trackLength - 800) && distanceAhead < trackLength && Math.abs(playerX - c.x) < 0.4) {
-                c.speed = Math.max(1000, speed - 1500); // Decelerate smoothly to match player speed
-            } else {
-                c.speed = c.baseSpeed; // Safe to cruise
-            }
+                c.speed = Math.max(1000, speed - 1500); 
+            } else { c.speed = c.baseSpeed; }
 
             if (keys.space && distanceAhead > 0 && distanceAhead < 3500 && Math.abs(playerX - c.x) < 0.35) {
                 c.isEvading = true; c.evadeTimer = 2.0; c.targetLaneX = (c.lane === 2) ? 0.75 : 0.25;
@@ -215,11 +272,8 @@ function update(dt) {
         c.x += (c.isEvading ? (c.targetLaneX - c.x) * dt * 4 : ([-0.75, -0.25, 0.25, 0.75][c.lane] - c.x) * dt * 2.5);
         if (c.isEvading && (c.evadeTimer -= dt) <= 0) c.isEvading = false;
 
-        // Clean Front Collision Intercept Execution
         if (oldSeg.index === currSeg.index && Math.abs(playerX - c.x) < (c.width + 0.16)) {
             let headOn = (c.heading === 'south'), distanceAhead = c.position - position; if (distanceAhead < 0) distanceAhead += trackLength;
-            
-            // Only crash if oncoming head-on OR if you hit a car cleanly from behind
             if (headOn || (distanceAhead < 400 && speed > c.speed)) {
                 triggerCrash();
                 c.position = headOn ? (c.position - 800 + trackLength) % trackLength : (c.position + 800) % trackLength;
@@ -227,16 +281,14 @@ function update(dt) {
         }
     });
 
-    // --- RIVAL AI MOVEMENT UPDATES WITH EQUAL DAMAGE ---
+    // --- RIVAL AI SYSTEM (NO RUBBERBAND REPOSITION WARPING GHOSTS) ---
     rivalRacers.forEach(r => {
         let oldSeg = findSegment(r.position);
         
         if (!r.isCrashing) {
-            r.position = (r.position + r.speed * dt) % trackLength;
+            r.position = r.position + r.speed * dt;
         } else {
-            r.speed = Math.max(0, r.speed - dt * 6000);
-            r.position = (r.position + r.speed * dt) % trackLength;
-            
+            r.speed = Math.max(0, r.speed - dt * 6000); r.position = r.position + r.speed * dt;
             if (r.speed > 0 && Math.random() > 0.4) {
                 let rSeg = findSegment(r.position);
                 if (rSeg.p1) {
@@ -244,29 +296,24 @@ function update(dt) {
                     particles.push({ x: rx + (Math.random() - 0.5) * 30, y: ry - 20, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15 - 3, alpha: 1.0, color: r.color });
                 }
             }
-            if ((r.crashTimer -= dt) <= 0) { r.isCrashing = false; r.speed = MAX_SPEED * 0.5; }
+            if ((r.crashTimer -= dt) <= 0) { r.isCrashing = false; r.speed = MAX_SPEED * 0.55; }
         }
         
-        // IQ1000 AI Lane-Evasion Logic: Swerve around the player instead of ramming from behind!
-        let distanceAhead = r.position - position; if (distanceAhead < 0) distanceAhead += trackLength;
-        
-        if (distanceAhead > (trackLength - 1000) && distanceAhead < trackLength && Math.abs(playerX - r.x) < 0.4 && !r.isCrashing) {
-            // Rival detects player chassis ahead! Trigger an emergency lateral lane change shift
+        // Dynamic Swerving Overtake Steering
+        let distanceAhead = r.position - position;
+        if (distanceAhead > -1000 && distanceAhead < 0 && Math.abs(playerX - r.x) < 0.4 && !r.isCrashing) {
             r.lane = (playerX > 0) ? 0 : 2; 
         }
 
         const careerLanes = [-0.6, 0, 0.6];
         if (!r.isCrashing) r.x += (careerLanes[r.lane] - r.x) * dt * 3;
 
-        // Equal Damage Matrix Box Check
+        // Symmetric Frame Impact Checks
         if (oldSeg.index === currSeg.index && Math.abs(playerX - r.x) < (r.width + 0.15)) {
-            let dist = (r.position - position + trackLength) % trackLength;
-            if (dist < 400 && !r.isCrashing) {
-                // Only trigger crash frames if player rams them from behind OR if they clip you head-on
-                if (speed > r.speed || dist > (trackLength - 400)) {
-                    r.isCrashing = true; r.crashTimer = 2.0;
-                    triggerCrash(); 
-                }
+            if (position > r.position && speed > r.speed && !r.isCrashing) {
+                r.isCrashing = true; r.crashTimer = 2.0; triggerCrash(); 
+            } else if (r.position > position && r.speed > speed && !r.isCrashing) {
+                r.isCrashing = true; r.crashTimer = 2.5; triggerCrash();
             }
         }
     });
@@ -286,14 +333,20 @@ function render() {
 
     const baseSeg = findSegment(position); let maxy = HEIGHT, x = 0, dx = 0;
     for (let n = 0; n < DRAW_DISTANCE; n++) {
-        const seg = segments[(baseSeg.index + n) % segments.length], looped = seg.index < baseSeg.index;
+        let segIdx = (baseSeg.index + n) % segments.length;
+        
+        // Prevent map wrapping calculations inside limited career races maps strips
+        if (selectedGameMode === 'career' && (baseSeg.index + n) >= segments.length) continue;
+
+        const seg = segments[segIdx], looped = seg.index < baseSeg.index;
         const camX = playerX * ROAD_W, camY = CAMERA_H + baseSeg.world.y, camZ = position - (looped ? trackLength : 0);
         seg.p1 = { world: { x: seg.world.x, y: seg.world.y, z: seg.world.z }, screen: {}, scale: 0 };
         project(seg.p1, camX - x, camY, camZ, seg.p1); x += dx; dx += seg.curve;
         if (seg.p1.screen.y >= maxy || seg.p1.screen.z <= CAM_DEPTH) continue;
 
         if (n > 0) {
-            const p1 = segments[(baseSeg.index + n - 1) % segments.length].p1, p2 = seg.p1;
+            let prevIdx = (baseSeg.index + n - 1) % segments.length;
+            const p1 = segments[prevIdx].p1, p2 = seg.p1;
             if (p2.screen.y >= p1.screen.y) continue;
             drawPolygon(p1.screen.x, p1.screen.y, p1.screen.w * 2.5, p2.screen.x, p2.screen.y, p2.screen.w * 2.5, seg.color.grass);
             drawPolygon(p1.screen.x, p1.screen.y, p1.screen.w * 1.06, p2.screen.x, p2.screen.y, p2.screen.w * 1.06, seg.color.rumble);
@@ -316,7 +369,10 @@ function render() {
     }
 
     for (let n = DRAW_DISTANCE - 1; n > 0; n--) {
-        const seg = segments[(baseSeg.index + n) % segments.length]; if (!seg.p1) continue;
+        let segIdx = (baseSeg.index + n) % segments.length;
+        if (selectedGameMode === 'career' && (baseSeg.index + n) >= segments.length) continue;
+        const seg = segments[segIdx]; if (!seg.p1) continue;
+        
         cars.forEach(c => {
             if (findSegment(c.position).index === seg.index) drawTrafficCar(seg.p1.screen.x + (seg.p1.scale * c.x * ROAD_W * WIDTH / 2), seg.p1.screen.y, seg.p1.scale, c.color, c.heading === 'south');
         });
